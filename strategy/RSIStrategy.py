@@ -65,9 +65,11 @@ class RSIStrategy(QThread):
             kospi_code_list = self.kiwoom.get_code_list_by_market("0")
 
             # KOSDAQ(10)에 상장된 모든 종목 코드를 가져와 kosdaq_code_list에 저장
-            kosdaq_code_list = self.kiwoom.get_code_list_by_market("10")
+            # temporary jinhwan
+            # kosdaq_code_list = self.kiwoom.get_code_list_by_market("10")
 
-            for code in kospi_code_list + kosdaq_code_list:
+            # for code in kospi_code_list + kosdaq_code_list:
+            for code in kospi_code_list:
                 # 모든 종목 코드를 바탕으로 반복문 수행
                 code_name = self.kiwoom.get_master_code_name(code)
 
@@ -145,7 +147,7 @@ class RSIStrategy(QThread):
             try:
                 # (0)장중인지 확인
                 if not check_transaction_open():
-                    print("장시간이 아니므로 5분간 대기합니다.")
+                    print(" 장시간이 아니므로 5분간 대기합니다.")
                     time.sleep(5 * 60)
                     continue
 

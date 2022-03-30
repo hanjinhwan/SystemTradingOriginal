@@ -1,6 +1,5 @@
 import sqlite3
 
-
 def check_table_exist(db_name, table_name):
     with sqlite3.connect('{}.db'.format(db_name)) as con:
         cur = con.cursor()
@@ -21,6 +20,9 @@ def insert_df_to_db(db_name, table_name, df, option="replace"):
 def execute_sql(db_name, sql, param={}):
    with sqlite3.connect('{}.db'.format(db_name)) as con:
        cur = con.cursor()
+
+       print("execute_sql : ",sql + " param : ", param);
+
        cur.execute(sql, param)
        return cur
 

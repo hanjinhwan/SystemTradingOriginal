@@ -127,6 +127,55 @@ class Kiwoom(QAxWidget):
             self.tr_data = int(deposit)
             print(self.tr_data)
 
+        elif rqname == "opt10030_req":
+            print("jinhwan opt10030_req is called")
+
+            for i in range(tr_data_cnt):
+                if i != 0:
+                    code = self.dynamicCall("GetCommData(QString, QString, int, QString", trcode, rqname, i, "종목코드")
+                    code_name = self.dynamicCall("GetCommData(QString, QString, int, QString", trcode, rqname, i, "종목명")
+                    total = self.dynamicCall("GetCommData(QString, QString, int, QString", trcode, rqname, i, "거래금액")
+
+                    code = code.strip();
+                    code_name = code_name.strip();
+                    total = total.strip();
+
+                    # print(f'index : {i} code : {code} code_name : {code_name} total : {total}')
+
+                    # code를 key값으로 한 딕셔너리 변환
+                    # self.order[code] = {
+                    #     '종목코드': code,
+                    #     '종목명': code_name,
+                    #     '거래금액': total
+                    # }
+                    #
+                    # self.tr_data = self.order
+
+                    self.dynamicCall("SetInputValue(QString, QString)", "종목코드",  code)
+                    self.dynamicCall("CommRqData(QString, QString, int, QString)", "opt10001_req", "opt10001", 0, i)
+
+                    time.sleep(0.2)
+
+        elif rqname == "opt10001_req":
+            print("jinhwan opt10001_req is called")
+            code = self.dynamicCall("GetCommData(QString, QString, int, QString)", trcode, rqname, 0, "종목코드")
+            code_name = self.dynamicCall("GetCommData(QString, QString, int, QString)", trcode, rqname, 0, "종목명")
+            total = self.dynamicCall("GetCommData(QString, QString, int, QString)", trcode, rqname, 0, "시가총액")
+
+            code = code.strip()
+            code_name = code_name.strip()
+            total = total.strip()
+
+            print(f'종목코드 : {code_name} 종목명 : {code_name} 시가총액 : {total}')
+
+            self.order[code] = {
+                '종목코드': code,
+                '종목명': code_name,
+                '거래금액': total
+            }
+
+            self.tr_data = self.order
+
         elif rqname == "opt10075_req":
             for i in range(tr_data_cnt):
                 code = self.dynamicCall("GetCommData(QString, QString, int, QString", trcode, rqname, i, "종목코드")
@@ -226,7 +275,8 @@ class Kiwoom(QAxWidget):
 
     def send_order(self, rqname, screen_no, order_type, code, order_quantity, order_price, order_classification, origin_order_number=""):
         order_result = self.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",[rqname, screen_no, self.account_number, order_type, code, order_quantity, order_price,order_classification, origin_order_number])
-        return order_result
+        self.result = order_result
+        return self.result
 
     def _on_receive_msg(self, screen_no, rqname, trcode, msg):
         print("[Kiwoom] _on_receive_msg is called {} / {} / {} / {}".format(screen_no, rqname, trcode, msg))
@@ -348,3 +398,28 @@ class Kiwoom(QAxWidget):
                 "(최우선)매수호가": top_priority_bid,
                 "누적거래량": accum_volume
             })
+
+# 전일 거래 상위종목 100개 : 0
+# 주가 1000원 미만 제외 : 0
+# 시총 1000억 미만 제외 : 0
+
+# 일봉 기준 20일선 위에 있는 종목
+# 증거금 100% 제외
+
+    def get_code_list_by_price(self):
+        self.dynamicCall("SetInputValue(QString, QString)", "시장구분", "000")  # 0:전체, 1:미체결, 2:체결
+        self.dynamicCall("SetInputValue(QString, QString)", "정렬구분", "1")  # 1:거래량, 2:거래회전율, 3:거래대금
+        # self.dynamicCall("SetInputValue(QString, QString)", "관리종목포함", "1")
+        # self.dynamicCall("SetInputValue(QString, QString)", "신용구분", "0")
+        # self.dynamicCall("SetInputValue(QString, QString)", "거래량구분", "0")
+        self.dynamicCall("SetInputValue(QString, QString)", "가격구분", "1") # 0:전체조회, 1:1천원미만, 2:1천원이상, 3:1천원~2천원, 4:2천원~5천원, 5:5천원이상, 6:5천원~1만원, 10:1만원미만, 7:1만원이상, 8:5만원이상, 9:10만원이상
+        self.dynamicCall("SetInputValue(QString, QString)", "거래대금구분", "0") # 0:전체조회, 1:1천만원이상, 3:3천만원이상, 4:5천만원이상, 10:1억원이상, 30:3억원이상, 50:5억원이상, 100:10억원이상, 300:30억원이상, 500:50억원이상, 1000:100억원이상, 3000:300억원이상, 5000:500억원이상
+        # self.dynamicCall("SetInputValue(QString, QString)", "장운영구분", "0")
+        self.dynamicCall("CommRqData(QString, QString, int, QString)", "opt10030_req", "opt10030", 0, "0002")
+
+        self.tr_event_loop.exec_()
+        return self.tr_data
+
+    def get_detail_info_by_code(self, code):
+        self.dynamicCall("SetInputValue(QString, QString)", "종목코드", "000")
+        self.dynamicCall("CommRqData(QString, QString, int, QString)", "opt10001_req", "opt10030", 0, "0002")
